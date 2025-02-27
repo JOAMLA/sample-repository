@@ -1,20 +1,29 @@
-name: Build
+name: build
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches: ['main']
+  push:
+    branches: ['main']
 jobs:
-  sonarcloud:
-    name: SonarCloud
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x]
     steps:
       - uses: actions/checkout@v3
+      - name: Install npm packages
+        run: |
+          npm install
+          nohup npm run dev > output.log 2>&1 &
+          sleep 5
+          curl -I http://localhost:1342/
+      - name: Run Cypress tests
+        run: |
+          npm run test:cypress
+
+      - name: UserWay Accessibility Analysis
+        uses: UserWayOrg/cicd-action@main
         with:
-          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          token: ${{ secrets.USERWAY_TOKEN }}
+          report_paths: './uw-a11y-reports'
